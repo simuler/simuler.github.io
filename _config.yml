@@ -3,17 +3,17 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: simuler
+title: simuler's blog
 subtitle: ''
 description: ''
 keywords:
 author: John Doe
-language: en
+language: zh
 timezone: ''
 
 # URL
 ## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
-url: https://simuler.github.io/project
+url: https://simuler.github.io
 permalink: :year/:month/:day/:title/
 permalink_defaults:
 pretty_urls:
