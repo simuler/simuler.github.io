@@ -12,7 +12,7 @@ math: true
 # AE
 对于ae的理解在于，是一个将原图像通过encoder压缩为低维信息，再通过decoder从信息恢复的过程。其并不是严格意义上的生成模型，因为它的目标是恢复出原来的输入，而不是生成新的图像，只是对信息进行了压缩和重建，从损失函数中也可以看出，只是计算了预测值和原始值的mse。
 
-# VAE
+# VAE（Variational Auto-Encoding）
 
 [讲了为什么要用变分推断](https://zhuanlan.zhihu.com/p/355019238)
 
@@ -53,7 +53,7 @@ math: true
    = max\sum_{i=1}^{i=n}logp(x_i)
    = max\sum_{i=1}^{i=n}log\int{p(x|z)p(z)dz}$
    
-  - 规范以下定义, $x->z->x'$
+  - 规范以下定义, $x\to z\to x'$
     - $x$: 样本数据
     - $z$: 隐变量
     - $x'$: 生成的样本
@@ -110,7 +110,82 @@ math: true
    注意，上述的推导最终是以$p(x)$为优化目标，所以需要最大化ELBO，在计算loss时，即最小化-ELBO。其中KL散度直接计算即可，logp(x|z)即计算bce误差或mse误差
   
   
-# DDPM
+# DDPM（Denoising Diffusion Probabilistic Models）
+VAE的本质是将图像压缩到隐空间，然后从隐空间进行采样。ddpm中不考虑隐空间的问题，而是根据非平衡热力学的思想，将原图像加噪为完全随机的噪声，然后逐步去掉噪声，还原图像。
+基于ddpm的思想，自然有两个问题：
+- 加噪时应该如何加，才能将最终的图像加为完全的噪声
+- 基于完全随机的噪声图像，如何去噪还原图像
+## 1. 前向加噪过程
+假设原图是$x_0$,加噪过程满足$q(x_t|x_{t-1})=\mathcal{N}(x_t；\sqrt{1-\beta_t}x_{t-1}，\beta_tI)$,则:
 
+$x_t = \sqrt{a_t}x_{t-1} + \sqrt{\beta_t}\varepsilon_t,a_t=1-\beta_t$
 
-      
+这里有个问题，为什么加噪过程要这么设置？先继续往下推：
+$\begin{aligned}
+x_t &= \sqrt{a_t}x_{t-1} + \sqrt{\beta_t}\varepsilon_t \\\\
+    &= \sqrt{a_t}(\sqrt{a_{t-1}}x_{t-2} + \sqrt{\beta_{t-1}}\varepsilon_{t-1}) + \sqrt{\beta_t}\varepsilon_t  \\\\
+    &= \sqrt{a_{t}a_{t-1}..a_{1}}x_{0} + \sqrt{a_{t}a_{t-1}..a_{2}\beta_{1}}\varepsilon_{1} + ... \sqrt{a_{t}\beta_{t-1}}\varepsilon_{t-1} + \sqrt{\beta_t}\varepsilon_t 
+\end{aligned}
+$
+
+因为$\sqrt{a_{t}a_{t-1}..a_{2}\beta_{1}}\varepsilon_{1} + ... \sqrt{a_{t}\beta_{t-1}}\varepsilon_{t-1} + \sqrt{\beta_t}\varepsilon_t $都是标准正态分布，所以整体的方差为$1-a_{t}...a_{1}$,推导如下：
+
+$\begin{aligned}
+& a_{t}a_{t-1}..a_{1} + a_{t}a_{t-1}..a_{2}\beta_{1} + ...+a_{t}\beta_{t-1}+\beta_{t}  \\\\
+& = a_{t}a_{t-1}..a_{2}(a_1 + \beta_1) + ...  \\\\
+& = a_{t}a_{t-1}..a_{3}(a_2 + \beta_2) + ...  \\\\
+& = a_t + \beta_1 \\\\
+& = 1
+\end{aligned}
+$
+
+$q(x_{t}|x_0)=\sqrt{a_{t}a_{t-1}...a_1}x_0 + \sqrt{1-a_{t}a_{t-1}...a_1}\varepsilon=\mathcal{N}(x_t;\sqrt{\bar{a_{t}}}x_0;(1-\bar{a_{t}})I) \\\\
+其中\bar{a_T}=\prod_{t=1}^{t=T}a_t
+$
+
+从上面的公式能看出来最终的$x_t$均值为$\sqrt{\bar{a_{t}}}x_0$,而$\beta$我们一般设置为很小的正数$[1e-4,2e-2]$,当$t\to\infty$时，$x_t$的均值基本趋近于0了，所以我们可以将其视作纯噪声。
+
+## 反向过程
+在反向过程中，我们希望在每个时间步t拟合的策略应该是：$p_\theta(x_{t-1}|x_{t})=\mathcal{N}(x_{t-1};\mu_\theta(x_t, t),\varepsilon_\theta(x_t,t))$,其中假设方差项$\varepsilon_\theta(x_t,t)=\delta_{t}^{2}=\beta_{t}$,下面推导去噪过程。
+
+$\begin{aligned}
+q(x_{t-1}|x_t，x_0) &=\frac{q(x_t|x_{t-1})q(x_{t-1})}{q(x_t)}  \\\\
+               &=\frac{q(x_t|x_{t-1},x_0)q(x_{t-1}|x_0)}{q(x_t|x_0)}
+\end{aligned}
+$
+
+其中
+
+$\begin{aligned}
+& q(x_t|x_{t-1},x_0)\sim\mathcal{N}(x_t;\sqrt{a_t}x_{t-1},\beta_tI);\mu=\sqrt{a_t},\delta^{2}=\beta_{t} \\\\
+& q(x_{t-1}|x_0)\sim\mathcal{N}(x_{t-1};\sqrt{a_{t-1}...a_{1}}x_{0},(1-a_{t-1}...a_1)I); \mu=\sqrt{{\bar{a}_{t-1}}},\delta^{2}=1-\bar{a}_{t-1} \\\\
+& q(x_{t}|x_0)\sim\mathcal{N}(x_{t};\sqrt{a_{t}...a_{1}}x_{0},(1-a_{t}...a_1)I); \mu=\sqrt{{\bar{a}_{t}}},\delta^{2}=1-\bar{a}_{t}
+\end{aligned}
+$
+
+然后我们可以计算这几个高斯分布：
+
+$\begin{aligned}
+q(x_{t-1}|x_t，x_0) &= exp({-\frac{1}{2}(\frac{(x_t-\sqrt{a_t}x_{t-1})^{2}}{\beta_t} + \frac{(x_{t-1}-\sqrt{\bar{a}_{t-1}}x_0)^2}{1-\bar{a}_{t-1}} - \frac{(x_t-\sqrt{\bar{a}_{t}}x_0)^2}{1-\bar{a}_{t}})}) \\\\
+& = exp({-\frac{1}{2}(\frac{(x_t^2-2\sqrt{a_t}x_{t}x_{t-1} + a_tx_{t-1}^2)}{\beta_t} + \frac{(x_{t-1}^2-2\sqrt{\bar{a}_{t-1}}x_{t-1}x_0 + \bar{a}_{t-1}x_0^2)}{1-\bar{a}_{t-1}} - \frac{(x_t^2-2\sqrt{\bar{a}_{t}}x_{t}x_{0} + \bar{a}_{t}x_{0}^2)}{1-\bar{a}_{t}})}) \\\\
+& = exp(-\frac{1}{2}((\frac{a_t}{\beta_t} + \frac{1}{1-\bar{a}_{t-1}})x_{t-1}^2 - (\frac{2\sqrt{a_t}}{\beta_t}x_t + \frac{2{\bar{a}_{t-1}}}{1-\bar{a}_{t-1}}x_0)x_{t-1} + c(x_t, x_0)))
+\end{aligned}
+$
+
+我们从另一个角度看$q(x_{t-1})$,$q(x_{t-1})$也是一个高斯分布，可以表示为$q(x_{t-1})=\frac{1}{\sqrt{2\pi\delta^2}}exp(-\frac{1}{2}(\frac{(x_{t-1}-\mu_{t-1})^2}{\delta^2}))$,跟上面的公式一一对应下，得到：
+$\frac{1}{\delta^2}=\frac{a_t}{\beta_t} + \frac{1}{1-\bar{a}_{t-1}},-2\mu=\frac{- (\frac{2\sqrt{a_t}}{\beta_t}x_t + \frac{2{\bar{a}_{t-1}}}{1-\bar{a}_{t-1}}x_0)}{\frac{a_t}{\beta_t} + \frac{1}{1-\bar{a}_{t-1}}} \to  \delta^2 = \frac{1-\bar{a}_{t-1}}{1-\bar{a}_t}\beta_t, \mu = \frac{\sqrt{a}_t(1-\bar{a}_{t-1})}{1-\bar{a}_t}x_t + \frac{\sqrt{\bar{a}_{t-1}}\beta_t}{1-\bar{a}_t}x_0$
+
+由前向推导时$x_t和x_0$的关系可以得到：$x_0 = \frac{1}{\sqrt{\bar{a}_t}}(x_t - \sqrt{1-\bar{a}_t}\varepsilon_t)$,将其带入上面的公式，即可得到：
+
+$\begin{aligned}
+x_{t-1} &= \frac{\sqrt{a}_t(1-\bar{a}_{t-1})}{1-\bar{a}_t}x_t + \frac{\sqrt{\bar{a}_{t-1}}\beta_t}{1-\bar{a}_t}x_0 + \sqrt{\frac{1-\bar{a}_{t-1}}{1-\bar{a}_t}\beta_t}z  \\\\
+& = \frac{\sqrt{a}_t(1-\bar{a}_{t-1})}{1-\bar{a}_t}x_t + \frac{\sqrt{\bar{a}_{t-1}}\beta_t}{1-\bar{a}_t}{\frac{1}{\sqrt{\bar{a}_t}}(x_t - \sqrt{1-\bar{a}_t}\varepsilon_t)} + \sqrt{\frac{1-\bar{a}_{t-1}}{1-\bar{a}_t}\beta_t}z  \\\\
+&= \frac{1}{\sqrt{a}_t}(x_t - \frac{\beta_t}{\sqrt{1-\bar{a}_t}}\varepsilon_{x_t,t}) + \delta_t z
+\end{aligned}
+$
+
+这样就建立了只有$x_t 和 x_{t-1}$的联系，其中的$\varepsilon$就是我们要学习的参数。目前为止已经推导出了前向和反向过程的所有需要的目标：
+- 前向时没有需要学习的参数，直接设置$\beta$，然后可以一步得到$x_t$
+- 反向时，向网络输入$(x_t,t)$，预测$\varepsilon$
+
+但是为什么通过预测噪声能够最终还原出原图像，并且有泛化性呢？
