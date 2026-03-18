@@ -3,6 +3,7 @@ title: diffision推导
 date: 2026-02-15 12:45:00
 tags:
   - diffision
+math: true
 ---
 
 # 从vae、ddpm、ddim、diffision到flow matching公式推导
