@@ -21,24 +21,26 @@ math: true
 1. 什么是生成问题？
 
   在生成问题中，我们目标是希望基于当前的样本，学习到一种数据分布，从这个数据分布中，能够采样得到不同的样本。那么有两种方式去得到这个数据分布：
+
   - 最大似然  
   学习到由参数$\theta$表示的数据分布，在给定数据集上，采样得到$x$的概率最大。
+    $$
+    \theta=argmax(p(x|\theta))=argmax\prod_{i=1}^{n}p(x_{i}|\theta)=argmax\sum_{i=1}^{n}logp(x_{i}|\theta)
+    $$
 
-      $$
-      \theta=argmax(p(x|\theta))=argmax\prod_{i=1}^{n}p(x_{i}|\theta)=argmax\sum_{i=1}^{n}logp(x_{i}|\theta)
-      $$
   - 条件概率
-
-      $$
-      {p(\theta|x)}=\frac{p(x,\theta)}{ p(x)}=\frac{p(x|\theta)p(\theta)}{p(x)}
-      =\frac{\prod_{i=1}^{n}p(x_{i}|\theta)p(\theta)}{\int{\prod_{i=1}^{n}p(x_{i}|\theta)p(\theta)d\theta}}
-      $$
+    $$
+    {p(\theta|x)}=\frac{p(x,\theta)}{ p(x)}=\frac{p(x|\theta)p(\theta)}{p(x)}
+    =\frac{\prod_{i=1}^{n}p(x_{i}|\theta)p(\theta)}{\int{\prod_{i=1}^{n}p(x_{i}|\theta)p(\theta)d\theta}}
+    $$
 
   最大似然估计存在几个问题：
+
   - 样本中未出现的情况会将概率估计为0，没有泛化能力
   - 无法利用先验知识
   
   因此，我们一般采样条件概率的方式求解数据分布：
+
   - 一种估计条件概率的方法是变分推断
   - 一种是蒙特卡洛
   
@@ -96,11 +98,11 @@ math: true
    \end{aligned}
    $$
 
-  - $$\int{q_{\phi}(z|x)log{\frac{q_{\phi}(z|x)}{p(z|x)}}}dz \\\\
-   =E_{z\sim q_{\phi}(z|x)}[log{\frac{q_{\phi}(z|x)}{p(z|x)}}]$$
-      - 这一步积分变均值，需要满足
-          - 非负性：$$q_{\phi}(z|x) >= 0$$
-          - $$\int{q_{\phi}(z|x)}dz=1$$
+   $$\int{q_{\phi}(z|x)log{\frac{q_{\phi}(z|x)}{p(z|x)}}}dz = E_{z\sim q_{\phi}(z|x)}[log{\frac{q_{\phi}(z|x)}{p(z|x)}}]$$
+      
+    - 这一步积分变均值，需要满足:
+        - 非负性：$q_{\phi}(z|x) >= 0$
+        - $\int{q_{\phi}(z|x)}dz=1$
    
    $\mathcal{L}$就是ELBO，有两种形式，我们目标是最大化$logp(x)$,其中$KL(q_\phi(z|x)|p(z|x))$是大于0的，所以可以将ELBO看作$logp(x)$的下界，我们可以通过对$\phi$求梯度的方式优化ELBO。
 
