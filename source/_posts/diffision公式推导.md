@@ -99,10 +99,9 @@ math: true
    $$
 
    $$\int{q_{\phi}(z|x)log{\frac{q_{\phi}(z|x)}{p(z|x)}}}dz = E_{z\sim q_{\phi}(z|x)}[log{\frac{q_{\phi}(z|x)}{p(z|x)}}]$$
-      
-    - 这一步积分变均值，需要满足:
-        - 非负性：$q_{\phi}(z|x) >= 0$
-        - $\int{q_{\phi}(z|x)}dz=1$
+   - 这一步积分变均值，需要满足:
+     - 非负性：$q_{\phi}(z|x) >= 0$
+     - $\int{q_{\phi}(z|x)}dz=1$
    
    $\mathcal{L}$就是ELBO，有两种形式，我们目标是最大化$logp(x)$,其中$KL(q_\phi(z|x)|p(z|x))$是大于0的，所以可以将ELBO看作$logp(x)$的下界，我们可以通过对$\phi$求梯度的方式优化ELBO。
 
