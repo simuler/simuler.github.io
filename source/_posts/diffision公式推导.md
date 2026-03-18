@@ -80,9 +80,12 @@ math: true
    \end{aligned}
    $ 
 
-   其中$logp(x)=KL(q_\phi(z|x)|p(z|x)) - KL(q_\phi(z|x)|p(z)) + E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] \\\\
-   \mathcal{L} = -KL(q_\phi(z|x)|p(z)) + E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] \\\\
-   \mathcal{L} = E_{z\sim q_{\phi}(z|x)}[log{p(x,z)} - log{p(x|z)}] 
+   其中
+   $\begin{aligned}
+   & logp(x) = KL(q_\phi(z|x)|p(z|x)) - KL(q_\phi(z|x)|p(z)) + E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] \\\\
+   & \mathcal{L} = -KL(q_\phi(z|x)|p(z)) + E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] \\\\
+   & \mathcal{L} = E_{z\sim q_{\phi}(z|x)}[log{p(x,z)} - log{p(x|z)}]
+   \end{aligned}
    $
   - $\int{q_{\phi}(z|x)log{\frac{q_{\phi}(z|x)}{p(z|x)}}}dz \\\\
    =E_{z\sim q_{\phi}(z|x)}[log{\frac{q_{\phi}(z|x)}{p(z|x)}}]$
@@ -98,9 +101,11 @@ math: true
 
    然后我们通过蒙特卡洛法计算ELBO:
 
-   $\mathcal{L}(\theta,\phi;x^{i})  \\\\
-   = -KL(q_\phi(z|x^{i})|p_\theta(z)) + E_{z\sim q_{\phi}(z|x^{i})}[log{p_{\theta}(x^{i}|g_\phi(\varepsilon，x^{i}))}] \\\\
-   = -KL(q_\phi(z|x^{i})|p_\theta(z)) + \frac{1}{L}\sum_{l=1}^{L}logp_\theta{x^{(i)}|g_\phi(\varepsilon^{l}，x^{i})}
+   $\begin{aligned}
+   & \mathcal{L}(\theta,\phi;x^{i})  \\\\
+   & = -KL(q_\phi(z|x^{i})|p_\theta(z)) + E_{z\sim q_{\phi}(z|x^{i})}[log{p_{\theta}(x^{i}|g_\phi(\varepsilon，x^{i}))}] \\\\
+   & = -KL(q_\phi(z|x^{i})|p_\theta(z)) + \frac{1}{L}\sum_{l=1}^{L}logp_\theta{x^{(i)}|g_\phi(\varepsilon^{l}，x^{i})}
+   \end{aligned}
    $
    注意，上述的推导最终是以$p(x)$为优化目标，所以需要最大化ELBO，在计算loss时，即最小化-ELBO。其中KL散度直接计算即可，logp(x|z)即计算bce误差或mse误差
   
