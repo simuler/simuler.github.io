@@ -13,11 +13,95 @@ tags:
 
 # VAE
 
-讲了为什么要用变分推断
+[讲了为什么要用变分推断](https://zhuanlan.zhihu.com/p/355019238)
 
-https://zhuanlan.zhihu.com/p/355019238
+[讲了vae gan flow推导](https://zhuanlan.zhihu.com/p/721196823)
 
-讲了vae gan flow推导
+1. 什么是生成问题？
 
-https://zhuanlan.zhihu.com/p/721196823
+  在生成问题中，我们目标是希望基于当前的样本，学习到一种数据分布，从这个数据分布中，能够采样得到不同的样本。那么有两种方式去得到这个数据分布：
+  - 最大似然  
+  学习到由参数$\theta$表示的数据分布，在给定数据集上，采样得到$x$的概率最大。
 
+      $\theta=argmax(p(x|\theta))=argmax\prod_{i=1}^{n}p(x_{i}|\theta)=argmax\sum_{i=1}^{n}logp(x_{i}|\theta)$
+  - 条件概率
+
+      ${p(\theta|x)}=\frac{p(x,\theta)}{ p(x)}=\frac{p(x|\theta)p(\theta)}{p(x)}
+      =\frac{\prod_{i=1}^{n}p(x_{i}|\theta)p(\theta)}{\int{\prod_{i=1}^{n}p(x_{i}|\theta)p(\theta)d\theta}}$
+
+  最大似然估计存在几个问题：
+  - 样本中未出现的情况会将概率估计为0，没有泛化能力
+  - 无法利用先验知识
+  
+  因此，我们一般采样条件概率的方式求解数据分布：
+  - 一种估计条件概率的方法是变分推断
+  - 一种是蒙特卡洛
+  
+  变分推断的思想是用一个简单的分布$q(\theta)$拟合$p(\theta|x)$,并通过kl散度加以约束，求解$q(\theta)$相当于:
+      $minKL(q(\theta)|p(\theta|x)) = min\int{q(\theta)\frac{q(\theta)}{p(\theta|x)}d\theta}$
+  
+  2. VAE是如何解决这个生成问题的
+
+   假设我们有一堆$3*256*256$大小的样本图像$x_i$,这些样本是iid的，正常情况下我们希望能直接得到$196608$维度的分布，并直接从这里面采样得到图片，但是这么高维的数据中大部分采样得到的都是噪声。
+
+   考虑到原始图像的信息是冗余的，我们能不能将图像进行压缩，得到低维的隐变量，隐变量与采样图像是对应的（不一定一一对应），通过从隐变量中解码得到图像。
+
+   假设这些隐变量都是从一个已知的简单分布$z$采样得到的,那么我们要优化的目标就是最大化所有从$z$中采样$x$的边缘概率之积：
+
+   $max\prod_{i=1}^{i=n}p(x_i)
+   = max\sum_{i=1}^{i=n}logp(x_i)
+   = max\sum_{i=1}^{i=n}log\int{p(x|z)p(z)dz}$
+   
+  - 规范以下定义, $x->z->x'$
+    - $x$: 样本数据
+    - $z$: 隐变量
+    - $x'$: 生成的样本
+    - $p(z|x)$: 编码器的真实分布
+    - $q_\phi(z|x)$: 编码器的近似分布 
+    - $p(z)$: 隐变量的分布
+    - $p(x|z)$: 解码器的真实分布
+    
+  - 注意：$p(x)、p(x')$我们是不知道的
+
+   在VAE中，我们假设隐变量的分布是高斯分布，即$p(z)=\mathcal{N}(0, I)$,解码器可以表示为$p_\theta(x|z)$（因为解码器的目标我们是知道的，但是不知道目标的分布，所以可以直接训练），这样我们如果能训练得到这个解码器，就可以从高斯分布中采样，然后解码得到图像了。
+   
+   为了保证采样得到的隐变量能够得到有用的图像，而不是噪声，采样时的隐变量其实是从图像$x$编码得到的，编码之后的隐变量是满足我们之前设置的高斯分布的，那我们如何保证所有的$x$经过编码器后得到的隐变量是满足分布$p(z)$呢？这样我们需要求解$p(z|x)$（但是这个无法直接求解，后面会说原因），我们只能假设一个近似分布$q_\phi(z|x)$，让编码器最终输出的是一个分布，包括均值$\mu$和方差$\sigma$,我们希望这个近似分布和真实分布$p(z|x)$是一致的,这也引出了我们的优化目标：
+
+   $KL(q_\phi(z|x)|p(z|x)) \\
+   =\int{q_{\phi}(z|x)log{\frac{q_{\phi}(z|x)}{p(z|x)}}}dz  \\
+   =E_{z\sim q_{\phi}(z|x)}[log{\frac{q_{\phi}(z|x)}{p(z|x)}}]  \\
+   =E_{z\sim q_{\phi}(z|x)}[log{q_{\phi}(z|x)} - log{p(z|x)}]   \\
+   =E_{z\sim q_{\phi}(z|x)}[log{q_{\phi}(z|x)} - log{p(z|x)}]   \\
+   =E_{z\sim q_{\phi}(z|x)}[log{q_{\phi}(z|x)} - log{\frac{p(x|z)p(z)}{p(x)}}]  \\
+   =E_{z\sim q_{\phi}(z|x)}[log{q_{\phi}(z|x)} - log{p(x|z)}-log{p(z)} + log{p(x)}]  \\
+   =KL(q_\phi(z|x)|p(z)) - E_{z\sim q_{\phi}(z|x)}[log{p(x|z)} - log{p(x)}]$ 
+
+   其中$logp(x)=KL(q_\phi(z|x)|p(z|x)) - KL(q_\phi(z|x)|p(z)) + E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] \\
+   \mathcal{L} = -KL(q_\phi(z|x)|p(z)) + E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] \\
+   \mathcal{L} = E_{z\sim q_{\phi}(z|x)}[log{p(x,z)} - log{p(x|z)}] 
+   $
+  - $\int{q_{\phi}(z|x)log{\frac{q_{\phi}(z|x)}{p(z|x)}}}dz 
+   =E_{z\sim q_{\phi}(z|x)}[log{\frac{q_{\phi}(z|x)}{p(z|x)}}]$
+      - 这一步积分变均值，需要满足
+          - 非负性：$q_{\phi}(z|x) >= 0$
+          - $\int{q_{\phi}(z|x)}dz=1$
+   
+   $\mathcal{L}$就是ELBO，有两种形式，我们目标是最大化$logp(x)$,其中$KL(q_\phi(z|x)|p(z|x))$是大于0的，所以可以将ELBO看作$logp(x)$的下界，我们可以通过对$\phi$求梯度的方式优化ELBO。
+
+   求梯度前，我们先看看如何计算ELBO，直接计算肯定是不行的，我们只能用蒙特卡洛算法，通过采样的方式计算ELBO。下面这个式子肯定是能通过采样的方式计算均值的，但是需要先将$x$输入编码器，得到隐变量$z$,然后经过解码器，得到$log{p(x|z)}$,可以看到梯度是断的，我们无法直接优化编码器。这里引入重参数化，其思路在于z本来是从编码器的输出$\mu$和$\sigma$中采样得到的，这里我们引入一个标准正态分布$\varepsilon$,通过$z=\mu + \sigma\varepsilon$得到隐变量，这样整个优化过程就是连续的了：
+
+   $E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] = E_{\varepsilon\sim p(\varepsilon)}[x|g_\phi(\varepsilon，x)]$
+
+   然后我们通过蒙特卡洛法计算ELBO:
+
+   $\mathcal{L}(\theta,\phi;x^{i})  \\
+   = -KL(q_\phi(z|x^{i})|p_\theta(z)) + E_{z\sim q_{\phi}(z|x^{i})}[log{p_{\theta}(x^{i}|g_\phi(\varepsilon，x^{i}))}] \\
+   = -KL(q_\phi(z|x^{i})|p_\theta(z)) + \frac{1}{L}\sum_{l=1}^{L}logp_\theta{x^{(i)}|g_\phi(\varepsilon^{l}，x^{i})}
+   $
+   注意，上述的推导最终是以$p(x)$为优化目标，所以需要最大化ELBO，在计算loss时，即最小化-ELBO。其中KL散度直接计算即可，logp(x|z)即计算bce误差或mse误差
+  
+  
+# DDPM
+
+
+      
