@@ -87,6 +87,7 @@ math: true
    & \mathcal{L} = E_{z\sim q_{\phi}(z|x)}[log{p(x,z)} - log{p(x|z)}]
    \end{aligned}
    $
+
   - $\int{q_{\phi}(z|x)log{\frac{q_{\phi}(z|x)}{p(z|x)}}}dz \\\\
    =E_{z\sim q_{\phi}(z|x)}[log{\frac{q_{\phi}(z|x)}{p(z|x)}}]$
       - 这一步积分变均值，需要满足
