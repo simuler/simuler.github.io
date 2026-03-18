@@ -170,7 +170,7 @@ $$
 $$\begin{aligned}
 & q(x_t|x_{t-1},x_0)\sim\mathcal{N}(x_t;\sqrt{a_t}x_{t-1},\beta_tI);\mu=\sqrt{a_t},\delta^{2}=\beta_{t} \\\\
 & q(x_{t-1}|x_0)\sim\mathcal{N}(x_{t-1};\sqrt{a_{t-1}...a_{1}}x_{0},(1-a_{t-1}...a_1)I); \mu=\sqrt{\bar{a}_{t-1}},\delta^{2}=1-\bar{a}_{t-1} \\\\
-& q(x_{t}|x_0)\sim\mathcal{N}(x_{t};\sqrt{a_{t}...a_{1}}x_{0},(1-a_{t}...a_1)I); \mu=\sqrt{{\bar{a}_{t}}},\delta^{2}=1-\bar{a}_{t}
+& q(x_{t}|x_0)\sim\mathcal{N}(x_{t};\sqrt{a_{t}...a_{1}}x_{0},(1-a_{t}...a_1)I); \mu=\sqrt{\bar{a}_{t}},\delta^{2}=1-\bar{a}_{t}
 \end{aligned}
 $$
 
