@@ -68,14 +68,17 @@ math: true
    
    为了保证采样得到的隐变量能够得到有用的图像，而不是噪声，采样时的隐变量其实是从图像$x$编码得到的，编码之后的隐变量是满足我们之前设置的高斯分布的，那我们如何保证所有的$x$经过编码器后得到的隐变量是满足分布$p(z)$呢？这样我们需要求解$p(z|x)$（但是这个无法直接求解，后面会说原因），我们只能假设一个近似分布$q_\phi(z|x)$，让编码器最终输出的是一个分布，包括均值$\mu$和方差$\sigma$,我们希望这个近似分布和真实分布$p(z|x)$是一致的,这也引出了我们的优化目标：
 
-   $KL(q_\phi(z|x)|p(z|x)) \\\\
+   $\begin{aligned}
+   KL(q_\phi(z|x)|p(z|x)) \\\\
    =\int{q_{\phi}(z|x)log{\frac{q_{\phi}(z|x)}{p(z|x)}}}dz  \\\\
    =E_{z\sim q_{\phi}(z|x)}[log{\frac{q_{\phi}(z|x)}{p(z|x)}}]  \\\\
    =E_{z\sim q_{\phi}(z|x)}[log{q_{\phi}(z|x)} - log{p(z|x)}]   \\\\
    =E_{z\sim q_{\phi}(z|x)}[log{q_{\phi}(z|x)} - log{p(z|x)}]   \\\\
    =E_{z\sim q_{\phi}(z|x)}[log{q_{\phi}(z|x)} - log{\frac{p(x|z)p(z)}{p(x)}}]  \\\\
    =E_{z\sim q_{\phi}(z|x)}[log{q_{\phi}(z|x)} - log{p(x|z)}-log{p(z)} + log{p(x)}]  \\\\
-   =KL(q_\phi(z|x)|p(z)) - E_{z\sim q_{\phi}(z|x)}[log{p(x|z)} - log{p(x)}]$ 
+   =KL(q_\phi(z|x)|p(z)) - E_{z\sim q_{\phi}(z|x)}[log{p(x|z)} - log{p(x)}]
+   \end{aligned}
+   $ 
 
    其中$logp(x)=KL(q_\phi(z|x)|p(z|x)) - KL(q_\phi(z|x)|p(z)) + E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] \\\\
    \mathcal{L} = -KL(q_\phi(z|x)|p(z)) + E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] \\\\
