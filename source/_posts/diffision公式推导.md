@@ -2,7 +2,7 @@
 title: diffision推导
 date: 2026-02-15 12:45:00
 tags:
-  - diffision
+  - diffusion
 math: true
 ---
 
@@ -108,7 +108,7 @@ math: true
    求梯度前，我们先看看如何计算ELBO，直接计算肯定是不行的，我们只能用蒙特卡洛算法，通过采样的方式计算ELBO。下面这个式子肯定是能通过采样的方式计算均值的，但是需要先将$x$输入编码器，得到隐变量$z$,然后经过解码器，得到$log{p(x|z)}$,可以看到梯度是断的，我们无法直接优化编码器。这里引入重参数化，其思路在于z本来是从编码器的输出$\mu$和$\sigma$中采样得到的，这里我们引入一个标准正态分布$\varepsilon$,通过$z=\mu + \sigma\varepsilon$得到隐变量，这样整个优化过程就是连续的了：
 
    $$
-   E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] = E_{\varepsilon\sim p(\varepsilon)}[x|g_\phi(\varepsilon，x)]
+   E_{z\sim q_{\phi}(z|x)}[log{p(x|z)}] = E_{\varepsilon\sim p(\varepsilon)}[logp(x|g_\phi(\varepsilon，x))]
    $$
 
    然后我们通过蒙特卡洛法计算ELBO:
@@ -199,7 +199,7 @@ x_{t-1} &= \frac{\sqrt{a}_t(1-\bar{a}_{t-1})}{1-\bar{a}_t}x_t + \frac{\sqrt{\bar
 $$
 
 这样就建立了只有$x_t 和 x_{t-1}$的联系，其中的$\varepsilon$就是我们要学习的参数。目前为止已经推导出了前向和反向过程的所有需要的目标：
-- 前向时没有需要学习的参数，直接设置$\beta$，然后可以一步得到$x_t$
-- 反向时，向网络输入$(x_t,t)$，预测$\varepsilon$
+ - 前向时没有需要学习的参数，直接设置$\beta$，然后可以一步得到$x_t$
+ - 反向时，向网络输入$(x_t,t)$，预测$\varepsilon$
 
 但是为什么通过预测噪声能够最终还原出原图像，并且有泛化性呢？
